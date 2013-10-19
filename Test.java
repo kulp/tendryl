@@ -4,5 +4,6 @@ public class Test {
     int bar = BAR;
     long x = 0xdeadbeefcafeL;
     double y = 123.456D;
+    float z = 1.25F;
 }
 
