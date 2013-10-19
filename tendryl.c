@@ -54,6 +54,9 @@ struct cp_info {
             u2 name_index;
             u2 descriptor_index;
         } NAT;
+        struct {
+            u2 string_index;
+        } S;
     } info;
 };
 
@@ -167,6 +170,13 @@ static int parse_NameAndType(FILE *f, tendryl_ops *ops, void *_cp)
     return ops->verbose("NameAndType with name index %d, descriptor index %d", ni, di);
 }
 
+static int parse_String(FILE *f, tendryl_ops *ops, void *_cp)
+{
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(S.string_index);
+    u2 si = cp->info.S.string_index = GET2(f);
+    return ops->verbose("String with string index %d", si);
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -202,6 +212,7 @@ int tendryl_init_ops(tendryl_ops *ops)
             [CONSTANT_Utf8]        = parse_Utf8,
             [CONSTANT_Class]       = parse_Class,
             [CONSTANT_Methodref]   = parse_Methodref,
+            [CONSTANT_String]      = parse_String,
             [CONSTANT_NameAndType] = parse_NameAndType,
         },
     };
