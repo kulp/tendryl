@@ -2,11 +2,15 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <errno.h>
+#include <stddef.h>
 
 #define REALLOC(X,N)    (ops->realloc((X), (N)))
 #define ALLOC(N)        REALLOC(NULL, N)
 #define FREE(X)         REALLOC(X, 0)
 #define CALLOC(X, N, M) ALLOC((N)*(M))
+
+#define ALLOC_UPTO_PLUS(F,N)    ALLOC(offsetof(cp_info,info.F) + sizeof (cp_info){ .tag = 0 }.info.F)
+#define ALLOC_UPTO(F)           ALLOC_UPTO_PLUS(F,0)
 
 typedef struct cp_info cp_info;
 typedef struct field_info field_info;
@@ -38,6 +42,10 @@ struct cp_info {
         struct {
             u2 name_index;
         } C;
+        struct {
+            u2 class_index;
+            u2 name_and_type_index;
+        } M;
     } info;
 };
 
@@ -101,17 +109,35 @@ static int check_version(u2 major, u2 minor)
 
 static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC(sizeof *cp);
-    cp->tag = GET1(f);
-    if (cp->tag < CONSTANT_min || cp->tag >= CONSTANT_max)
-        return ops->error(EINVAL, "invalid constant pool tag %d", cp->tag);
+    u1 type = GET1(f);
+    if (type < CONSTANT_min || type >= CONSTANT_max)
+        return ops->error(EINVAL, "invalid constant pool tag %d", type);
 
-    if (ops->parse.dispatch[cp->tag])
-        return ops->parse.dispatch[cp->tag](f, ops, &cp->info);
-    else
-        return ops->error(EFAULT, "missing handler for constant pool tag %d", cp->tag);
+    if (ops->parse.dispatch[type]) {
+        int rc = ops->parse.dispatch[type](f, ops, _cp);
+        (*(cp_info**)_cp)->tag = type;
+        return rc;
+    } else {
+        return ops->error(EFAULT, "missing handler for constant pool tag %d", type);
+    }
 
     return -1;
+}
+
+static int parse_Methodref(FILE *f, tendryl_ops *ops, void *_cp)
+{
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(M.name_and_type_index);
+    u2 ci = cp->info.M.class_index = GET2(f);
+    u2 ni = cp->info.M.name_and_type_index = GET2(f);
+    // TODO checking index validities
+    return ops->verbose("Methodref with class index %d, name.type index %d", ci, ni);
+}
+
+static int parse_Class(FILE *f, tendryl_ops *ops, void *_cp)
+{
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(C.name_index);
+    u2 ni = cp->info.C.name_index = GET2(f);
+    return ops->verbose("Class with name index %d", ni);
 }
 
 static int got_error(int code, const char *fmt, ...)
@@ -145,6 +171,10 @@ int tendryl_init_ops(tendryl_ops *ops)
     ops->parse = (struct tendryl_parsers){
         .classfile = parse_classfile,
         .cp_info = parse_cp_info,
+        .dispatch = {
+            [CONSTANT_Class]     = parse_Class,
+            [CONSTANT_Methodref] = parse_Methodref,
+        },
     };
 
     return -1;
