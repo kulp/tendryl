@@ -17,7 +17,7 @@ int main(int argc, char *argv[])
     tendryl_ops _ops, *ops = &_ops;
     tendryl_init_ops(ops);
     tendryl_class *c;
-    tendryl_parse_classfile(f, ops, &c);
+    ops->parse.classfile(f, ops, &c);
     fclose(f);
 
     return EXIT_SUCCESS;

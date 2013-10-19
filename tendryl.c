@@ -62,11 +62,11 @@ static inline u1 GET1(FILE *f)
     return t[0];
 }
 
-int tendryl_parse_classfile(FILE *f, tendryl_ops *ops, tendryl_class **_c)
+static int parse_classfile(FILE *f, tendryl_ops *ops, void *_c)
 {
     int rc = 0;
 
-    tendryl_class *c = *_c = ALLOC(sizeof *c);
+    tendryl_class *c = *(tendryl_class **)_c = ALLOC(sizeof *c);
 
     // TODO make parse_magic
     {
@@ -133,6 +133,7 @@ int tendryl_init_ops(tendryl_ops *ops)
 
     ops->version = check_version;
     ops->parse = (struct tendryl_parsers){
+        .classfile = parse_classfile,
         .cp_info = parse_cp_info,
     };
 

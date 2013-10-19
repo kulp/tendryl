@@ -49,11 +49,10 @@ struct tendryl_ops {
     int (*verbose)(const char *fmt, ...);
     int (*version)(u2 major, u2 minor);
     struct tendryl_parsers {
-        tendryl_parser *cp_info, *dispatch[CONSTANT_max];
+        tendryl_parser *classfile, *cp_info, *dispatch[CONSTANT_max];
     } parse;
 };
 
-int tendryl_parse_classfile(FILE *f, tendryl_ops *ops, tendryl_class **c);
 int tendryl_init_ops(tendryl_ops *ops);
 
 #endif
