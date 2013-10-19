@@ -46,6 +46,10 @@ struct cp_info {
             u2 class_index;
             u2 name_and_type_index;
         } M;
+        struct {
+            u2 length;
+            u1 bytes[0]; // needs to permit sizeof, so not a flexible array
+        } U;
     } info;
 };
 
@@ -140,6 +144,17 @@ static int parse_Class(FILE *f, tendryl_ops *ops, void *_cp)
     return ops->verbose("Class with name index %d", ni);
 }
 
+static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
+{
+    u2 len = GET2(f);
+    // allocate one extra byte for a NUL char, for our own debugging use only
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO_PLUS(U.bytes, len + 1);
+    cp->info.U.length = len;
+    fread(&cp->info.U.bytes, 1, len, f);
+    cp->info.U.bytes[len] = '\0';
+    return ops->verbose("Utf8 with length %d = `%s`", len, cp->info.U.bytes);
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -172,6 +187,7 @@ int tendryl_init_ops(tendryl_ops *ops)
         .classfile = parse_classfile,
         .cp_info = parse_cp_info,
         .dispatch = {
+            [CONSTANT_Utf8]      = parse_Utf8,
             [CONSTANT_Class]     = parse_Class,
             [CONSTANT_Methodref] = parse_Methodref,
         },
