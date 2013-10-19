@@ -45,7 +45,7 @@ struct cp_info {
         struct {
             u2 class_index;
             u2 name_and_type_index;
-        } M;
+        } FMI;
         struct {
             u2 length;
             u1 bytes[0]; // needs to permit sizeof, so not a flexible array
@@ -125,6 +125,11 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
         return ops->error(EINVAL, "invalid constant pool tag %d", type);
 
     if (ops->parse.dispatch[type]) {
+        // TODO we would like the dispatch to know what tag it has, but
+        // there's no space allocated yet. This would make parse_Methodref's
+        // overloading more useful in .verbose(), but for now it is
+        // non-critical. We could do something as naïve as realloc() if
+        // it becomes necessary.
         int rc = ops->parse.dispatch[type](f, ops, _cp);
         (*(cp_info**)_cp)->tag = type;
         return rc;
@@ -135,13 +140,14 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
     return -1;
 }
 
+// parse_Methodref also handles Fieldref and InterfaceMethodref
 static int parse_Methodref(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(M.name_and_type_index);
-    u2 ci = cp->info.M.class_index = GET2(f);
-    u2 ni = cp->info.M.name_and_type_index = GET2(f);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(FMI.name_and_type_index);
+    u2 ci = cp->info.FMI.class_index = GET2(f);
+    u2 ni = cp->info.FMI.name_and_type_index = GET2(f);
     // TODO checking index validities
-    return ops->verbose("Methodref with class index %d, name.type index %d", ci, ni);
+    return ops->verbose("Field/Method/InterfaceMethod ref with class index %d, name.type index %d", ci, ni);
 }
 
 static int parse_Class(FILE *f, tendryl_ops *ops, void *_cp)
@@ -209,11 +215,13 @@ int tendryl_init_ops(tendryl_ops *ops)
         .classfile = parse_classfile,
         .cp_info = parse_cp_info,
         .dispatch = {
-            [CONSTANT_Utf8]        = parse_Utf8,
-            [CONSTANT_Class]       = parse_Class,
-            [CONSTANT_Methodref]   = parse_Methodref,
-            [CONSTANT_String]      = parse_String,
-            [CONSTANT_NameAndType] = parse_NameAndType,
+            [CONSTANT_Utf8]               = parse_Utf8,
+            [CONSTANT_Class]              = parse_Class,
+            [CONSTANT_Fieldref]           = parse_Methodref,
+            [CONSTANT_Methodref]          = parse_Methodref,
+            [CONSTANT_InterfaceMethodref] = parse_Methodref,
+            [CONSTANT_String]             = parse_String,
+            [CONSTANT_NameAndType]        = parse_NameAndType,
         },
     };
 
