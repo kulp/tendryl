@@ -134,6 +134,27 @@ static int parse_classfile(FILE *f, tendryl_ops *ops, void *_c)
             c->interfaces[i] = GET2(f);
     }
 
+    {
+        c->fields_count = GET2(f);
+        c->fields = ALLOC(c->fields_count * sizeof *c->fields);
+        for (unsigned i = 0; i < c->fields_count; i++)
+            ops->parse.field_info(f, ops, &c->fields[i]);
+    }
+
+    {
+        c->methods_count = GET2(f);
+        c->methods = ALLOC(c->methods_count * sizeof *c->methods);
+        for (unsigned i = 0; i < c->methods_count; i++)
+            ops->parse.method_info(f, ops, &c->methods[i]);
+    }
+
+    {
+        c->attributes_count = GET2(f);
+        c->attributes = ALLOC(c->attributes_count * sizeof *c->attributes);
+        for (unsigned i = 0; i < c->attributes_count; i++)
+            ops->parse.attribute_info(f, ops, &c->attributes[i]);
+    }
+
     return rc;
 }
 
@@ -233,6 +254,17 @@ static int parse_Long(FILE *f, tendryl_ops *ops, void *_cp)
     return ops->verbose("Long/Double with bytes %#llx", ((long long)hv) << 32 | lv);
 }
 
+// parse_field_info also handles method_info
+static int parse_field_info(FILE *f, tendryl_ops *ops, void *_fi)
+{
+    return -1;
+}
+
+static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
+{
+    return -1;
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -280,6 +312,9 @@ int tendryl_init_ops(tendryl_ops *ops)
             // TODO MethodType
             // TODO InvokeDynamic
         },
+        .field_info = parse_field_info,
+        .method_info = parse_field_info,
+        .attribute_info = parse_attribute_info,
     };
 
     return -1;
