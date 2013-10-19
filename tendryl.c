@@ -60,6 +60,10 @@ struct cp_info {
         struct {
             u4 bytes;
         } I;
+        struct {
+            u4 high_bytes;
+            u4 low_bytes;
+        } L;
     } info;
 };
 
@@ -109,8 +113,12 @@ static int parse_classfile(FILE *f, tendryl_ops *ops, void *_c)
     {
         c->constant_pool_count = GET2(f);
         c->constant_pool = ALLOC(c->constant_pool_count * sizeof *c->constant_pool);
-        for (unsigned i = 1; i < c->constant_pool_count; i++) // notice 1-indexing
-            ops->parse.cp_info(f, ops, &c->constant_pool[i]);
+        int inc = -1;
+        for (unsigned i = 1; i < c->constant_pool_count; i += inc) { // notice 1-indexing
+            inc = ops->parse.cp_info(f, ops, &c->constant_pool[i]);
+            if (inc < 0) // if inc < 0, it's an error ; otherwise, it's the increment
+                return inc;
+        }
     }
 
     return rc;
@@ -135,7 +143,16 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
         // it becomes necessary.
         int rc = ops->parse.dispatch[type](f, ops, _cp);
         (*(cp_info**)_cp)->tag = type;
-        return rc;
+        if (rc < 0)
+            return rc;
+         else
+             switch (type) {
+                case CONSTANT_Long:
+                case CONSTANT_Double:
+                    return 2;
+                default:
+                    return 1;
+             }
     } else {
         return ops->error(EFAULT, "missing handler for constant pool tag %d", type);
     }
@@ -194,6 +211,15 @@ static int parse_Integer(FILE *f, tendryl_ops *ops, void *_cp)
     return ops->verbose("Integer/Float with bytes %#x", iv);
 }
 
+// parse_Long handles Double as well
+static int parse_Long(FILE *f, tendryl_ops *ops, void *_cp)
+{
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(L.low_bytes);
+    u4 hv = cp->info.L.high_bytes = GET4(f);
+    u4 lv = cp->info.L.low_bytes = GET4(f);
+    return ops->verbose("Long/Double with bytes %#llx", ((long long)hv) << 32 | lv);
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -229,6 +255,8 @@ int tendryl_init_ops(tendryl_ops *ops)
             [CONSTANT_Utf8]               = parse_Utf8,
             [CONSTANT_Integer]            = parse_Integer,
             [CONSTANT_Float]              = parse_Integer,
+            [CONSTANT_Long]               = parse_Long,
+            [CONSTANT_Double]             = parse_Long,
             [CONSTANT_Class]              = parse_Class,
             [CONSTANT_Fieldref]           = parse_Methodref,
             [CONSTANT_Methodref]          = parse_Methodref,
