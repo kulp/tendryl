@@ -67,6 +67,24 @@ struct cp_info {
     } info;
 };
 
+struct attribute_info {
+    u2 attribute_name_index;
+    u4 attribute_length;
+    union {
+        struct {
+            u2 constantvalue_index;
+        } CV;
+    } info;
+};
+
+struct field_info {
+    u2 access_flags;
+    u2 name_index;
+    u2 descriptor_index;
+    u2 attributes_count;
+    attribute_info *attributes[0]; // needs to permit sizeof, so not a flexible array
+};
+
 static inline u4 GET4(FILE *f)
 {
     u1 t[4];
@@ -257,7 +275,17 @@ static int parse_Long(FILE *f, tendryl_ops *ops, void *_cp)
 // parse_field_info also handles method_info
 static int parse_field_info(FILE *f, tendryl_ops *ops, void *_fi)
 {
-    return -1;
+    // allocate a default number of attributes, and realloc after
+    field_info *fi = *(field_info **)_fi = ALLOC(16 * sizeof *fi->attributes + sizeof *fi);
+    u2 af = fi->access_flags = GET2(f);
+    u2 ni = fi->name_index = GET2(f);
+    u2 di = fi->descriptor_index = GET2(f);
+    u2 ac = fi->attributes_count = GET2(f);
+    fi = REALLOC(fi, ac * sizeof *fi->attributes + sizeof *fi);
+    for (unsigned i = 0; i < fi->attributes_count; i++)
+        ops->parse.attribute_info(f, ops, &fi->attributes[i]);
+
+    return ops->verbose("field_info with access %#x, name index %d, descriptor index %d, and %d attributes", af, ni, di, ac);
 }
 
 static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
