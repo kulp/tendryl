@@ -258,11 +258,14 @@ int tendryl_init_ops(tendryl_ops *ops)
             [CONSTANT_Long]               = parse_Long,
             [CONSTANT_Double]             = parse_Long,
             [CONSTANT_Class]              = parse_Class,
+            [CONSTANT_String]             = parse_String,
             [CONSTANT_Fieldref]           = parse_Methodref,
             [CONSTANT_Methodref]          = parse_Methodref,
             [CONSTANT_InterfaceMethodref] = parse_Methodref,
-            [CONSTANT_String]             = parse_String,
             [CONSTANT_NameAndType]        = parse_NameAndType,
+            // TODO MethodHandle
+            // TODO MethodType
+            // TODO InvokeDynamic
         },
     };
 
