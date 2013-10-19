@@ -125,11 +125,21 @@ static int got_error(int code, const char *fmt, ...)
     return -1;
 }
 
+static int got_verbose(const char *fmt, ...)
+{
+    va_list vl;
+    va_start(vl, fmt);
+    vprintf(fmt, vl);
+    fputs("\n", stdout);
+    va_end(vl);
+    return 0;
+}
+
 int tendryl_init_ops(tendryl_ops *ops)
 {
     ops->realloc = realloc;
     ops->error = got_error;
-    ops->verbose = printf;
+    ops->verbose = got_verbose;
 
     ops->version = check_version;
     ops->parse = (struct tendryl_parsers){
