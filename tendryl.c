@@ -28,7 +28,7 @@ struct ClassFile {
     field_info **fields;
     u2 methods_count;
     method_info **methods;
-    u2 attribute_count;
+    u2 attributes_count;
     attribute_info **attributes;
 };
 
