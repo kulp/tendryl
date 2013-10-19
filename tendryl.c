@@ -121,6 +121,19 @@ static int parse_classfile(FILE *f, tendryl_ops *ops, void *_c)
         }
     }
 
+    {
+        c->access_flags = GET2(f);
+        c->this_class = GET2(f);
+        c->super_class = GET2(f);
+    }
+
+    {
+        c->interfaces_count = GET2(f);
+        c->interfaces = ALLOC(c->interfaces_count * sizeof *c->interfaces);
+        for (unsigned i = 0; i < c->interfaces_count; i++)
+            c->interfaces[i] = GET2(f);
+    }
+
     return rc;
 }
 
