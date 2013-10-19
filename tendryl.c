@@ -186,11 +186,12 @@ static int parse_String(FILE *f, tendryl_ops *ops, void *_cp)
     return ops->verbose("String with string index %d", si);
 }
 
+// parse_Integer handles Float as well
 static int parse_Integer(FILE *f, tendryl_ops *ops, void *_cp)
 {
     cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(I.bytes);
     u4 iv = cp->info.I.bytes = GET4(f);
-    return ops->verbose("Integer with bytes %#x", iv);
+    return ops->verbose("Integer/Float with bytes %#x", iv);
 }
 
 static int got_error(int code, const char *fmt, ...)
@@ -227,6 +228,7 @@ int tendryl_init_ops(tendryl_ops *ops)
         .dispatch = {
             [CONSTANT_Utf8]               = parse_Utf8,
             [CONSTANT_Integer]            = parse_Integer,
+            [CONSTANT_Float]              = parse_Integer,
             [CONSTANT_Class]              = parse_Class,
             [CONSTANT_Fieldref]           = parse_Methodref,
             [CONSTANT_Methodref]          = parse_Methodref,
