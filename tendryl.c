@@ -50,6 +50,10 @@ struct cp_info {
             u2 length;
             u1 bytes[0]; // needs to permit sizeof, so not a flexible array
         } U;
+        struct {
+            u2 name_index;
+            u2 descriptor_index;
+        } NAT;
     } info;
 };
 
@@ -155,6 +159,14 @@ static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
     return ops->verbose("Utf8 with length %d = `%s`", len, cp->info.U.bytes);
 }
 
+static int parse_NameAndType(FILE *f, tendryl_ops *ops, void *_cp)
+{
+    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(NAT.descriptor_index);
+    u2 ni = cp->info.NAT.name_index = GET2(f);
+    u2 di = cp->info.NAT.descriptor_index = GET2(f);
+    return ops->verbose("NameAndType with name index %d, descriptor index %d", ni, di);
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -187,9 +199,10 @@ int tendryl_init_ops(tendryl_ops *ops)
         .classfile = parse_classfile,
         .cp_info = parse_cp_info,
         .dispatch = {
-            [CONSTANT_Utf8]      = parse_Utf8,
-            [CONSTANT_Class]     = parse_Class,
-            [CONSTANT_Methodref] = parse_Methodref,
+            [CONSTANT_Utf8]        = parse_Utf8,
+            [CONSTANT_Class]       = parse_Class,
+            [CONSTANT_Methodref]   = parse_Methodref,
+            [CONSTANT_NameAndType] = parse_NameAndType,
         },
     };
 
