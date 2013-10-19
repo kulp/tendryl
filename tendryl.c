@@ -9,8 +9,10 @@
 #define FREE(X)         REALLOC(X, 0)
 #define CALLOC(X, N, M) ALLOC((N)*(M))
 
-#define ALLOC_UPTO_PLUS(F,N)    ALLOC(offsetof(cp_info,info.F) + sizeof (cp_info){ .tag = 0 }.info.F)
-#define ALLOC_UPTO(F)           ALLOC_UPTO_PLUS(F,0)
+#define ALLOC_UPTO_PLUS_(C,T,F,N)   ALLOC(offsetof(C##_info,info.F) + sizeof (C##_info){ .T = 0 }.info.F)
+
+#define ALLOC_CP_UPTO_PLUS(F,N)     ALLOC_UPTO_PLUS_(cp,tag,F,N)
+#define ALLOC_CP_UPTO(F)            ALLOC_CP_UPTO_PLUS(F,0)
 
 typedef struct cp_info cp_info;
 typedef struct field_info field_info;
@@ -215,7 +217,7 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
 // parse_Methodref also handles Fieldref and InterfaceMethodref
 static int parse_Methodref(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(FMI.name_and_type_index);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(FMI.name_and_type_index);
     u2 ci = cp->info.FMI.class_index = GET2(f);
     u2 ni = cp->info.FMI.name_and_type_index = GET2(f);
     // TODO checking index validities
@@ -224,7 +226,7 @@ static int parse_Methodref(FILE *f, tendryl_ops *ops, void *_cp)
 
 static int parse_Class(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(C.name_index);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(C.name_index);
     u2 ni = cp->info.C.name_index = GET2(f);
     return ops->verbose("Class with name index %d", ni);
 }
@@ -233,7 +235,7 @@ static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
 {
     u2 len = GET2(f);
     // allocate one extra byte for a NUL char, for our own debugging use only
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO_PLUS(U.bytes, len + 1);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO_PLUS(U.bytes, len + 1);
     cp->info.U.length = len;
     fread(&cp->info.U.bytes, 1, len, f);
     cp->info.U.bytes[len] = '\0';
@@ -242,7 +244,7 @@ static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
 
 static int parse_NameAndType(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(NAT.descriptor_index);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(NAT.descriptor_index);
     u2 ni = cp->info.NAT.name_index = GET2(f);
     u2 di = cp->info.NAT.descriptor_index = GET2(f);
     return ops->verbose("NameAndType with name index %d, descriptor index %d", ni, di);
@@ -250,7 +252,7 @@ static int parse_NameAndType(FILE *f, tendryl_ops *ops, void *_cp)
 
 static int parse_String(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(S.string_index);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(S.string_index);
     u2 si = cp->info.S.string_index = GET2(f);
     return ops->verbose("String with string index %d", si);
 }
@@ -258,7 +260,7 @@ static int parse_String(FILE *f, tendryl_ops *ops, void *_cp)
 // parse_Integer handles Float as well
 static int parse_Integer(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(I.bytes);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(I.bytes);
     u4 iv = cp->info.I.bytes = GET4(f);
     return ops->verbose("Integer/Float with bytes %#x", iv);
 }
@@ -266,7 +268,7 @@ static int parse_Integer(FILE *f, tendryl_ops *ops, void *_cp)
 // parse_Long handles Double as well
 static int parse_Long(FILE *f, tendryl_ops *ops, void *_cp)
 {
-    cp_info *cp = *(cp_info **)_cp = ALLOC_UPTO(L.low_bytes);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(L.low_bytes);
     u4 hv = cp->info.L.high_bytes = GET4(f);
     u4 lv = cp->info.L.low_bytes = GET4(f);
     return ops->verbose("Long/Double with bytes %#llx", ((long long)hv) << 32 | lv);
