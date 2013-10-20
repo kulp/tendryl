@@ -14,6 +14,9 @@
 #define ALLOC_CP_UPTO_PLUS(F,N)     ALLOC_UPTO_PLUS_(cp,tag,F,N)
 #define ALLOC_CP_UPTO(F)            ALLOC_CP_UPTO_PLUS(F,0)
 
+#define ALLOC_AT_UPTO_PLUS(F,N)     ALLOC_UPTO_PLUS_(attribute,attribute_name_index,F,N)
+#define ALLOC_AT_UPTO(F)            ALLOC_CP_UPTO_PLUS(F,0)
+
 typedef struct cp_info cp_info;
 typedef struct field_info field_info;
 typedef struct method_info method_info;
@@ -292,7 +295,18 @@ static int parse_field_info(FILE *f, tendryl_ops *ops, void *_fi)
 
 static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
 {
-    return -1;
+    u2 ni = GET2(f);
+    u4 al = GET4(f);
+    attribute_info *ai = *(attribute_info **)_ai = ALLOC(al + sizeof *ai);
+    ai->attribute_name_index = ni;
+    ai->attribute_length = al;
+    // TODO define attribute_info as packed, or ensure that fread() is
+    // otherwise safe here ; otherwise the unpacking will have to be
+    // dispatched based on the attribute_name_index information in order to
+    // avoid C padding issues
+    fread(&ai->info, 1, al, f);
+
+    return ops->verbose("attribute_info with name index %d and length %d", ni, al);
 }
 
 static int got_error(int code, const char *fmt, ...)
