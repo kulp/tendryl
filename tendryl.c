@@ -3,6 +3,7 @@
 #include <stdarg.h>
 #include <errno.h>
 #include <stddef.h>
+#include <string.h>
 
 #define REALLOC(X,N)    (ops->realloc((X), (N)))
 #define ALLOC(N)        REALLOC(NULL, N)
@@ -39,31 +40,6 @@ struct ClassFile {
     method_info **methods;
     u2 attributes_count;
     attribute_info **attributes;
-};
-
-enum attribute_type {
-    ATTRIBUTE_invalid = 0,
-    // enum values come from gperf hash
-    ATTRIBUTE_Code = 4,
-    ATTRIBUTE_Synthetic = 9,
-    ATTRIBUTE_SourceFile = 10,
-    ATTRIBUTE_InnerClasses = 12,
-    ATTRIBUTE_ConstantValue = 13,
-    ATTRIBUTE_EnclosingMethod = 15,
-    ATTRIBUTE_BootstrapMethods = 16,
-    ATTRIBUTE_AnnotationDefault = 17,
-    ATTRIBUTE_LocalVariableTable = 18,
-    ATTRIBUTE_SourceDebugExtension = 20,
-    ATTRIBUTE_LocalVariableTypeTable = 22,
-    ATTRIBUTE_StackMapTable = 23,
-    ATTRIBUTE_Signature = 24,
-    ATTRIBUTE_RuntimeVisibleAnnotations = 25,
-    ATTRIBUTE_RuntimeInvisibleAnnotations = 27,
-    ATTRIBUTE_LineNumberTable = 30,
-    ATTRIBUTE_RuntimeVisibleParameterAnnotations = 34,
-    ATTRIBUTE_Exceptions = 35,
-    ATTRIBUTE_RuntimeInvisibleParameterAnnotations = 36,
-    ATTRIBUTE_Deprecated = 40
 };
 
 struct cp_info {
@@ -312,6 +288,93 @@ static int parse_field_info(FILE *f, tendryl_ops *ops, void *_fi)
     return ops->verbose("field_info with access %#x, name index %d, descriptor index %d, and %d attributes", af, ni, di, ac);
 }
 
+static unsigned int attr_hash(const char *str, unsigned int len)
+{
+    static unsigned char asso_values[] = {
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 30, 41, 41, 41, 15, 41, 41, 41, 41,
+         0,  0, 41, 41, 41, 41, 10,  0, 41, 41,
+        25,  0, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41, 41, 41, 41, 41,
+        41, 41, 41, 41, 41, 41
+    };
+
+    return len + asso_values[(unsigned char)str[1]];
+}
+
+static const char *attr_wordlist[] = {
+    "", "", "", "",
+    "Code",
+    "", "", "", "",
+    "Synthetic",
+    "SourceFile",
+    "",
+    "InnerClasses",
+    "ConstantValue",
+    "",
+    "EnclosingMethod",
+    "BootstrapMethods",
+    "AnnotationDefault",
+    "LocalVariableTable",
+    "",
+    "SourceDebugExtension",
+    "",
+    "LocalVariableTypeTable",
+    "StackMapTable",
+    "Signature",
+    "RuntimeVisibleAnnotations",
+    "",
+    "RuntimeInvisibleAnnotations",
+    "", "",
+    "LineNumberTable",
+    "", "", "",
+    "RuntimeVisibleParameterAnnotations",
+    "Exceptions",
+    "RuntimeInvisibleParameterAnnotations",
+    "", "", "",
+    "Deprecated"
+};
+
+static enum attribute_type attr_lookup(const char *str, unsigned int len)
+{
+    // enums for scoped symbolic use
+    enum { MIN_WORD_LENGTH=4, MAX_WORD_LENGTH=36 };
+    enum { MIN_HASH_VALUE=4, MAX_HASH_VALUE=40 };
+
+    if (len <= MAX_WORD_LENGTH && len >= MIN_WORD_LENGTH) {
+        enum attribute_type key = attr_hash(str, len);
+
+        if (key <= MAX_HASH_VALUE) {
+            const char *s = attr_wordlist[key];
+
+            if (*str == *s && !strcmp(str + 1, s + 1))
+                return key;
+        }
+    }
+
+    return 0;
+}
+
 static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
 {
     u2 ni = GET2(f);
@@ -319,13 +382,27 @@ static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
     attribute_info *ai = *(attribute_info **)_ai = ALLOC(al + sizeof *ai);
     ai->attribute_name_index = ni;
     ai->attribute_length = al;
-    // TODO define attribute_info as packed, or ensure that fread() is
-    // otherwise safe here ; otherwise the unpacking will have to be
-    // dispatched based on the attribute_name_index information in order to
-    // avoid C padding issues
-    fread(&ai->info, 1, al, f);
+    // TODO check for valid index
+    struct cp_Utf8 *u = &ops->clazz->constant_pool[ni]->info.U;
+    enum attribute_type at = attr_lookup((const char *)u->bytes, u->length);
+    if (ops->parse.attr[at]) {
+        ops->parse.attr[at](f, ops, ai);
+    } else {
+        ops->parse.attr[ATTRIBUTE_invalid](f, ops, ai);
+    }
 
-    return ops->verbose("attribute_info with name index %d and length %d", ni, al);
+    return ops->verbose("attribute_info with name index %d (%d:%s=%s) and length %d"
+                        , ni, at, u->bytes, attr_wordlist[at], al);
+}
+
+static int parse_unhandled_attr(FILE *f, tendryl_ops *ops, void *_at)
+{
+    attribute_info *ai = _at;
+    fread(&ai->info, 1, ai->attribute_length, f);
+    int ni = ai->attribute_name_index;
+    struct cp_Utf8 *u = &ops->clazz->constant_pool[ni]->info.U;
+    enum attribute_type at = attr_lookup((const char *)u->bytes, u->length);
+    return ops->verbose("unhandled attribute %d:%s", at, attr_wordlist[at]);
 }
 
 static int got_error(int code, const char *fmt, ...)
@@ -378,6 +455,9 @@ int tendryl_init_ops(tendryl_ops *ops)
         .field_info = parse_field_info,
         .method_info = parse_field_info,
         .attribute_info = parse_attribute_info,
+        .attr = {
+            [ATTRIBUTE_invalid] = parse_unhandled_attr,
+        },
     };
 
     return -1;

@@ -43,6 +43,36 @@ enum constant_tag {
     CONSTANT_max
 };
 
+enum attribute_type {
+    ATTRIBUTE_invalid = 0,
+
+#define ATTRIBUTE_min ATTRIBUTE_Code
+    // enum values come from gperf hash ; ideally they would not be exposed
+    // TODO consider hiding ATTRIBUTE_* values and exposing only ATTRIBUTE_max
+    ATTRIBUTE_Code = 4,
+    ATTRIBUTE_Synthetic = 9,
+    ATTRIBUTE_SourceFile = 10,
+    ATTRIBUTE_InnerClasses = 12,
+    ATTRIBUTE_ConstantValue = 13,
+    ATTRIBUTE_EnclosingMethod = 15,
+    ATTRIBUTE_BootstrapMethods = 16,
+    ATTRIBUTE_AnnotationDefault = 17,
+    ATTRIBUTE_LocalVariableTable = 18,
+    ATTRIBUTE_SourceDebugExtension = 20,
+    ATTRIBUTE_LocalVariableTypeTable = 22,
+    ATTRIBUTE_StackMapTable = 23,
+    ATTRIBUTE_Signature = 24,
+    ATTRIBUTE_RuntimeVisibleAnnotations = 25,
+    ATTRIBUTE_RuntimeInvisibleAnnotations = 27,
+    ATTRIBUTE_LineNumberTable = 30,
+    ATTRIBUTE_RuntimeVisibleParameterAnnotations = 34,
+    ATTRIBUTE_Exceptions = 35,
+    ATTRIBUTE_RuntimeInvisibleParameterAnnotations = 36,
+    ATTRIBUTE_Deprecated = 40,
+
+    ATTRIBUTE_max
+};
+
 struct tendryl_ops {
     tendryl_class *clazz;
 
@@ -53,6 +83,7 @@ struct tendryl_ops {
     struct tendryl_parsers {
         tendryl_parser *classfile, *cp_info, *pool[CONSTANT_max];
         tendryl_parser *field_info, *method_info, *attribute_info;
+        tendryl_parser *attr[ATTRIBUTE_max];
     } parse;
 };
 
