@@ -9,13 +9,13 @@
 #define FREE(X)         REALLOC(X, 0)
 #define CALLOC(X, N, M) ALLOC((N)*(M))
 
-#define ALLOC_UPTO_PLUS_(C,T,F,N)   ALLOC(offsetof(C##_info,info.F) + sizeof (C##_info){ .T = 0 }.info.F)
+#define ALLOC_UPTO_LEN(C,F,N)       ALLOC(offsetof(C##_info,info.F) + (N))
 
-#define ALLOC_CP_UPTO_PLUS(F,N)     ALLOC_UPTO_PLUS_(cp,tag,F,N)
-#define ALLOC_CP_UPTO(F)            ALLOC_CP_UPTO_PLUS(F,0)
+#define ALLOC_CP_UPTO_LEN(F,N)      ALLOC_UPTO_LEN(cp,F,N)
+#define ALLOC_CP_UPTO(F)            ALLOC_CP_UPTO_LEN(F,sizeof (cp_info){ .tag = 0 }.info.F)
 
-#define ALLOC_AT_UPTO_PLUS(F,N)     ALLOC_UPTO_PLUS_(attribute,attribute_name_index,F,N)
-#define ALLOC_AT_UPTO(F)            ALLOC_CP_UPTO_PLUS(F,0)
+#define ALLOC_AT_UPTO_LEN(F,N)      ALLOC_UPTO_LEN(attribute,F,N)
+#define ALLOC_AT_UPTO(F)            ALLOC_CP_UPTO_LEN(F,sizeof (attribute_info){ .attribute_name_index = 0 }.info.F)
 
 typedef struct cp_info cp_info;
 typedef struct field_info field_info;
@@ -78,7 +78,7 @@ struct cp_info {
         } FMI;
         struct cp_Utf8 {
             u2 length;
-            u1 bytes[0]; // needs to permit sizeof, so not a flexible array
+            u1 bytes[];
         } U;
         struct cp_NameAndType {
             u2 name_index;
@@ -112,7 +112,7 @@ struct field_info {
     u2 name_index;
     u2 descriptor_index;
     u2 attributes_count;
-    attribute_info *attributes[0]; // needs to permit sizeof, so not a flexible array
+    attribute_info *attributes[];
 };
 
 static inline u4 GET4(FILE *f)
@@ -257,7 +257,7 @@ static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
 {
     u2 len = GET2(f);
     // allocate one extra byte for a NUL char, for our own debugging use only
-    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO_PLUS(U.bytes, len + 1);
+    cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO_LEN(U.bytes, len + 1);
     cp->info.U.length = len;
     fread(&cp->info.U.bytes, 1, len, f);
     cp->info.U.bytes[len] = '\0';
