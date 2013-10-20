@@ -41,31 +41,56 @@ struct ClassFile {
     attribute_info **attributes;
 };
 
+enum attribute_type {
+    ATTRIBUTE_invalid = 0,
+    // enum values come from gperf hash
+    ATTRIBUTE_Code = 4,
+    ATTRIBUTE_Synthetic = 9,
+    ATTRIBUTE_SourceFile = 10,
+    ATTRIBUTE_InnerClasses = 12,
+    ATTRIBUTE_ConstantValue = 13,
+    ATTRIBUTE_EnclosingMethod = 15,
+    ATTRIBUTE_BootstrapMethods = 16,
+    ATTRIBUTE_AnnotationDefault = 17,
+    ATTRIBUTE_LocalVariableTable = 18,
+    ATTRIBUTE_SourceDebugExtension = 20,
+    ATTRIBUTE_LocalVariableTypeTable = 22,
+    ATTRIBUTE_StackMapTable = 23,
+    ATTRIBUTE_Signature = 24,
+    ATTRIBUTE_RuntimeVisibleAnnotations = 25,
+    ATTRIBUTE_RuntimeInvisibleAnnotations = 27,
+    ATTRIBUTE_LineNumberTable = 30,
+    ATTRIBUTE_RuntimeVisibleParameterAnnotations = 34,
+    ATTRIBUTE_Exceptions = 35,
+    ATTRIBUTE_RuntimeInvisibleParameterAnnotations = 36,
+    ATTRIBUTE_Deprecated = 40
+};
+
 struct cp_info {
     int tag;
     union {
-        struct {
+        struct cp_Class {
             u2 name_index;
         } C;
-        struct {
+        struct cp_Fieldref /* or Methodref, or InterfaceMethodref */ {
             u2 class_index;
             u2 name_and_type_index;
         } FMI;
-        struct {
+        struct cp_Utf8 {
             u2 length;
             u1 bytes[0]; // needs to permit sizeof, so not a flexible array
         } U;
-        struct {
+        struct cp_NameAndType {
             u2 name_index;
             u2 descriptor_index;
         } NAT;
-        struct {
+        struct cp_String {
             u2 string_index;
         } S;
-        struct {
+        struct cp_Integer /* or Float */ {
             u4 bytes;
         } I;
-        struct {
+        struct cp_Long /* or Double */ {
             u4 high_bytes;
             u4 low_bytes;
         } L;
