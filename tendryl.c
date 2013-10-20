@@ -203,13 +203,7 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
         if (rc < 0)
             return rc;
          else
-             switch (type) {
-                case CONSTANT_Long:
-                case CONSTANT_Double:
-                    return 2;
-                default:
-                    return 1;
-             }
+            return (type == CONSTANT_Long || type == CONSTANT_Double) ? 2 : 1;
     } else {
         return ops->error(EFAULT, "missing handler for constant pool tag %d", type);
     }

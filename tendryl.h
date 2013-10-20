@@ -12,10 +12,10 @@ typedef uint32_t u4;
 typedef uint16_t u2;
 typedef uint8_t  u1;
 
-// a tendryl_parser takes as its third argument a double pointer (cast to a
+// a tendryl_parser takes as its third argument a pointer to pointer (cast to
 // void*), which is filled in with an allocation done by the tendryl_parser
 // using the realloc() style allocator specified in tendryl_ops
-typedef int tendryl_parser(FILE *f, tendryl_ops *ops, void *);
+typedef int tendryl_parser(FILE *f, tendryl_ops *ops, void *build);
 
 enum constant_tag {
     CONSTANT_invalid             = 0,
