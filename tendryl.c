@@ -77,9 +77,27 @@ struct attribute_info {
     u2 attribute_name_index;
     u4 attribute_length;
     union {
-        struct {
+        struct attr_ConstantValue {
             u2 constantvalue_index;
         } CV;
+        struct attr_Code {
+            u2 max_stack;
+            u2 max_locals;
+
+            u4 code_length;
+            u1 *code;
+
+            u2 exception_table_length;
+            struct exception_entry {
+                u2 start_pc;
+                u2 end_pc;
+                u2 handler_pc;
+                u2 catch_type;
+            } *exception_table;
+
+            u2 attributes_count;
+            attribute_info **attributes;
+        } C;
     } info;
 };
 
@@ -395,7 +413,7 @@ static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
                         , ni, at, u->bytes, attr_wordlist[at], al);
 }
 
-static int parse_unhandled_attr(FILE *f, tendryl_ops *ops, void *_at)
+static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
 {
     attribute_info *ai = _at;
     fread(&ai->info, 1, ai->attribute_length, f);
@@ -403,6 +421,32 @@ static int parse_unhandled_attr(FILE *f, tendryl_ops *ops, void *_at)
     struct cp_Utf8 *u = &ops->clazz->constant_pool[ni]->info.U;
     enum attribute_type at = attr_lookup((const char *)u->bytes, u->length);
     return ops->verbose("unhandled attribute %d:%s", at, attr_wordlist[at]);
+}
+
+static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
+{
+    attribute_info *ai = _at;
+    struct attr_Code *ac = &ai->info.C;
+    ac->max_stack = GET2(f);
+    ac->max_locals = GET2(f);
+    ac->code_length = GET4(f);
+    ac->code = ALLOC(ac->code_length * sizeof *ac->code);
+    fread(&ac->code, 1, ac->code_length, f);
+    ac->exception_table_length = GET2(f);
+    ac->exception_table = ALLOC(ac->exception_table_length * sizeof *ac->exception_table);
+    for (unsigned i = 0; i < ac->exception_table_length; i++) {
+        struct exception_entry *e = &ac->exception_table[i];
+        e->start_pc = GET2(f);
+        e->end_pc = GET2(f);
+        e->handler_pc = GET2(f);
+        e->catch_type = GET2(f);
+    }
+    ac->attributes_count = GET2(f);
+    ac->attributes = ALLOC(ac->attributes_count * sizeof *ac->attributes);
+    for (unsigned i = 0; i < ac->attributes_count; i++)
+        ops->parse.attribute_info(f, ops, &ac->attributes[i]);
+
+    return ops->verbose("Code with length %d", ai->attribute_length);
 }
 
 static int got_error(int code, const char *fmt, ...)
@@ -456,7 +500,8 @@ int tendryl_init_ops(tendryl_ops *ops)
         .method_info = parse_field_info,
         .attribute_info = parse_attribute_info,
         .attr = {
-            [ATTRIBUTE_invalid] = parse_unhandled_attr,
+            [ATTRIBUTE_invalid] = parse_attribute_invalid,
+            [ATTRIBUTE_Code]    = parse_attribute_Code,
         },
     };
 
