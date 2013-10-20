@@ -217,13 +217,13 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
     if (type < CONSTANT_min || type >= CONSTANT_max)
         return ops->error(EINVAL, "invalid constant pool tag %d", type);
 
-    if (ops->parse.dispatch[type]) {
+    if (ops->parse.pool[type]) {
         // TODO we would like the dispatch to know what tag it has, but
         // there's no space allocated yet. This would make parse_Methodref's
         // overloading more useful in .verbose(), but for now it is
         // non-critical. We could do something as naïve as realloc() if
         // it becomes necessary.
-        int rc = ops->parse.dispatch[type](f, ops, _cp);
+        int rc = ops->parse.pool[type](f, ops, _cp);
         (*(cp_info**)_cp)->tag = type;
         if (rc < 0)
             return rc;
@@ -359,7 +359,7 @@ int tendryl_init_ops(tendryl_ops *ops)
     ops->parse = (struct tendryl_parsers){
         .classfile = parse_classfile,
         .cp_info = parse_cp_info,
-        .dispatch = {
+        .pool = {
             [CONSTANT_Utf8]               = parse_Utf8,
             [CONSTANT_Integer]            = parse_Integer,
             [CONSTANT_Float]              = parse_Integer,
