@@ -44,6 +44,8 @@ enum constant_tag {
 };
 
 struct tendryl_ops {
+    tendryl_class *clazz;
+
     void *(*realloc)(void *orig, size_t size);
     int (*error)(int err, const char *fmt, ...);
     int (*verbose)(const char *fmt, ...);
