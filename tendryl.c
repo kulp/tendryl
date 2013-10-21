@@ -96,7 +96,7 @@ struct attribute_info {
             } *exception_table;
 
             u2 attributes_count;
-            attribute_info **attributes;
+            attribute_info *attributes[];
         } C;
     } info;
 };
@@ -442,7 +442,7 @@ static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
         e->catch_type = GET2(f);
     }
     ac->attributes_count = GET2(f);
-    ac->attributes = ALLOC(ac->attributes_count * sizeof *ac->attributes);
+    // ac->attributes is allocated by the original attribute_length alloc
     for (unsigned i = 0; i < ac->attributes_count; i++)
         ops->parse.attribute_info(f, ops, &ac->attributes[i]);
 
