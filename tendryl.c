@@ -220,7 +220,7 @@ static int parse_cp_info(FILE *f, tendryl_ops *ops, void *_cp)
     if (ops->parse.pool[type]) {
         // TODO we would like the dispatch to know what tag it has, but
         // there's no space allocated yet. This would make parse_Methodref's
-        // overloading more useful in .verbose(), but for now it is
+        // overloading more useful in .debug(), but for now it is
         // non-critical. We could do something as naïve as realloc() if
         // it becomes necessary.
         int rc = ops->parse.pool[type](f, ops, _cp);
@@ -243,14 +243,14 @@ static int parse_Methodref(FILE *f, tendryl_ops *ops, void *_cp)
     u2 ci = cp->info.FMI.class_index = GET2(f);
     u2 ni = cp->info.FMI.name_and_type_index = GET2(f);
     // TODO checking index validities
-    return ops->verbose("Field/Method/InterfaceMethod ref with class index %d, name.type index %d", ci, ni);
+    return ops->debug(5, "Field/Method/InterfaceMethod ref with class index %d, name.type index %d", ci, ni);
 }
 
 static int parse_Class(FILE *f, tendryl_ops *ops, void *_cp)
 {
     cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(C.name_index);
     u2 ni = cp->info.C.name_index = GET2(f);
-    return ops->verbose("Class with name index %d", ni);
+    return ops->debug(5, "Class with name index %d", ni);
 }
 
 static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
@@ -261,7 +261,7 @@ static int parse_Utf8(FILE *f, tendryl_ops *ops, void *_cp)
     cp->info.U.length = len;
     fread(&cp->info.U.bytes, 1, len, f);
     cp->info.U.bytes[len] = '\0';
-    return ops->verbose("Utf8 with length %d = `%s`", len, cp->info.U.bytes);
+    return ops->debug(5, "Utf8 with length %d = `%s`", len, cp->info.U.bytes);
 }
 
 static int parse_NameAndType(FILE *f, tendryl_ops *ops, void *_cp)
@@ -269,14 +269,14 @@ static int parse_NameAndType(FILE *f, tendryl_ops *ops, void *_cp)
     cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(NAT.descriptor_index);
     u2 ni = cp->info.NAT.name_index = GET2(f);
     u2 di = cp->info.NAT.descriptor_index = GET2(f);
-    return ops->verbose("NameAndType with name index %d, descriptor index %d", ni, di);
+    return ops->debug(5, "NameAndType with name index %d, descriptor index %d", ni, di);
 }
 
 static int parse_String(FILE *f, tendryl_ops *ops, void *_cp)
 {
     cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(S.string_index);
     u2 si = cp->info.S.string_index = GET2(f);
-    return ops->verbose("String with string index %d", si);
+    return ops->debug(5, "String with string index %d", si);
 }
 
 // parse_Integer handles Float as well
@@ -284,7 +284,7 @@ static int parse_Integer(FILE *f, tendryl_ops *ops, void *_cp)
 {
     cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(I.bytes);
     u4 iv = cp->info.I.bytes = GET4(f);
-    return ops->verbose("Integer/Float with bytes %#x", iv);
+    return ops->debug(5, "Integer/Float with bytes %#x", iv);
 }
 
 // parse_Long handles Double as well
@@ -293,7 +293,7 @@ static int parse_Long(FILE *f, tendryl_ops *ops, void *_cp)
     cp_info *cp = *(cp_info **)_cp = ALLOC_CP_UPTO(L.low_bytes);
     u4 hv = cp->info.L.high_bytes = GET4(f);
     u4 lv = cp->info.L.low_bytes = GET4(f);
-    return ops->verbose("Long/Double with bytes %#llx", ((long long)hv) << 32 | lv);
+    return ops->debug(5, "Long/Double with bytes %#llx", ((long long)hv) << 32 | lv);
 }
 
 // parse_field_info also handles method_info
@@ -309,7 +309,7 @@ static int parse_field_info(FILE *f, tendryl_ops *ops, void *_fi)
     for (unsigned i = 0; i < fi->attributes_count; i++)
         ops->parse.attribute_info(f, ops, &fi->attributes[i]);
 
-    return ops->verbose("field_info with access %#x, name index %d, descriptor index %d, and %d attributes", af, ni, di, ac);
+    return ops->debug(5, "field_info with access %#x, name index %d, descriptor index %d, and %d attributes", af, ni, di, ac);
 }
 
 static unsigned int attr_hash(const char *str, unsigned int len)
@@ -415,8 +415,8 @@ static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
         ops->parse.attr[ATTRIBUTE_invalid](f, ops, ai);
     }
 
-    return ops->verbose("attribute_info with name index %d:%s=%d:%s and length %d"
-                        , ni, u->bytes, at, attr_wordlist[at], al);
+    return ops->debug(5, "attribute_info with name index %d:%s=%d:%s and length %d"
+                         , ni, u->bytes, at, attr_wordlist[at], al);
 }
 
 static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
@@ -429,8 +429,8 @@ static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
     // "A Java Virtual Machine implementation is required to silently ignore
     // any or all attributes in the attributes table of a ClassFile structure
     // that it does not recognize." JVM Spec section 4.1
-    // Thus we emit this as debug information, not as normal verbose output
-    return ops->debug(1, "unhandled attribute %d:%s", at, attr_wordlist[at]);
+    // Thus we emit this as debug information.
+    return ops->debug(2, "unhandled attribute %d:%s", at, attr_wordlist[at]);
 }
 
 static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
@@ -456,8 +456,8 @@ static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
     for (unsigned i = 0; i < ac->attributes_count; i++)
         ops->parse.attribute_info(f, ops, &ac->attributes[i]);
 
-    return ops->verbose("Code with overall length %d, bytecode length %d"
-                        , ai->attribute_length, ac->code_length);
+    return ops->debug(5, "Code with overall length %d, bytecode length %d"
+                         , ai->attribute_length, ac->code_length);
 }
 
 static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, void *_at)
@@ -465,7 +465,7 @@ static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, void *_at)
     attribute_info *ai = _at;
     struct attr_ConstantValue *ac = &ai->info.CV;
     u2 ci = ac->constantvalue_index = GET2(f);
-    return ops->verbose("ConstantValue with index %d", ci);
+    return ops->debug(5, "ConstantValue with index %d", ci);
 }
 
 static int parse_attribute_Exceptions(FILE *f, tendryl_ops *ops, void *_at)
@@ -477,7 +477,7 @@ static int parse_attribute_Exceptions(FILE *f, tendryl_ops *ops, void *_at)
     for (unsigned i = 0; i < ne; i++)
         e->exception_index_table[i] = GET2(f);
 
-    return ops->verbose("Exceptions with count %d", ne);
+    return ops->debug(5, "Exceptions with count %d", ne);
 }
 
 static int got_error(int code, const char *fmt, ...)
@@ -489,16 +489,6 @@ static int got_error(int code, const char *fmt, ...)
     va_end(vl);
     errno = code;
     return -1;
-}
-
-static int got_verbose(const char *fmt, ...)
-{
-    va_list vl;
-    va_start(vl, fmt);
-    vprintf(fmt, vl);
-    fputs("\n", stdout);
-    va_end(vl);
-    return 0;
 }
 
 static int got_debug(int level, const char *fmt, ...)
@@ -517,7 +507,6 @@ int tendryl_init_ops(tendryl_ops *ops)
 {
     ops->realloc = realloc;
     ops->error = got_error;
-    ops->verbose = got_verbose;
     ops->debug = got_debug;
 
     ops->version = check_version;
