@@ -449,6 +449,14 @@ static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
     return ops->verbose("Code with length %d", ai->attribute_length);
 }
 
+static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, void *_at)
+{
+    attribute_info *ai = _at;
+    struct attr_ConstantValue *ac = &ai->info.CV;
+    u2 ci = ac->constantvalue_index = GET2(f);
+    return ops->verbose("ConstantValue with index %d", ci);
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -500,8 +508,9 @@ int tendryl_init_ops(tendryl_ops *ops)
         .method_info = parse_field_info,
         .attribute_info = parse_attribute_info,
         .attr = {
-            [ATTRIBUTE_invalid] = parse_attribute_invalid,
-            [ATTRIBUTE_Code]    = parse_attribute_Code,
+            [ATTRIBUTE_invalid]       = parse_attribute_invalid,
+            [ATTRIBUTE_Code]          = parse_attribute_Code,
+            [ATTRIBUTE_ConstantValue] = parse_attribute_ConstantValue,
         },
     };
 
