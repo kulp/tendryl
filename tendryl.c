@@ -98,6 +98,10 @@ struct attribute_info {
             u2 attributes_count;
             attribute_info *attributes[];
         } C;
+        struct attr_Exceptions {
+            u2 number_of_exceptions;
+            u2 exception_index_table[];
+        } E;
     } info;
 };
 
@@ -457,6 +461,18 @@ static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, void *_at)
     return ops->verbose("ConstantValue with index %d", ci);
 }
 
+static int parse_attribute_Exceptions(FILE *f, tendryl_ops *ops, void *_at)
+{
+    attribute_info *ai = _at;
+    struct attr_Exceptions *e = &ai->info.E;
+    u2 ne = e->number_of_exceptions = GET2(f);
+    // e->exceptions is allocated by the original attribute_length alloc
+    for (unsigned i = 0; i < ne; i++)
+        e->exception_index_table[i] = GET2(f);
+
+    return ops->verbose("Exceptions with count %d", ne);
+}
+
 static int got_error(int code, const char *fmt, ...)
 {
     va_list vl;
@@ -511,6 +527,7 @@ int tendryl_init_ops(tendryl_ops *ops)
             [ATTRIBUTE_invalid]       = parse_attribute_invalid,
             [ATTRIBUTE_Code]          = parse_attribute_Code,
             [ATTRIBUTE_ConstantValue] = parse_attribute_ConstantValue,
+            [ATTRIBUTE_Exceptions]    = parse_attribute_Exceptions,
         },
     };
 
