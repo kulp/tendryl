@@ -5,6 +5,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
+extern int TENDRYL_DEBUG_LEVEL;
+
 typedef struct tendryl_ops tendryl_ops;
 typedef struct ClassFile tendryl_class;
 
@@ -79,6 +81,7 @@ struct tendryl_ops {
     void *(*realloc)(void *orig, size_t size);
     int (*error)(int err, const char *fmt, ...);
     int (*verbose)(const char *fmt, ...);
+    int (*debug)(int level, const char *fmt, ...);
     int (*version)(u2 major, u2 minor);
     struct tendryl_parsers {
         tendryl_parser *classfile, *cp_info, *pool[CONSTANT_max];

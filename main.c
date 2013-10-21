@@ -16,6 +16,7 @@ int main(int argc, char *argv[])
 
     tendryl_ops _ops, *ops = &_ops;
     tendryl_init_ops(ops);
+    TENDRYL_DEBUG_LEVEL = (unsigned short)-1;
     ops->parse.classfile(f, ops, &ops->clazz);
     fclose(f);
 

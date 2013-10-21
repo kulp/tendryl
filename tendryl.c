@@ -23,6 +23,8 @@ typedef struct field_info field_info;
 typedef struct method_info method_info;
 typedef struct attribute_info attribute_info;
 
+int TENDRYL_DEBUG_LEVEL = 0;
+
 struct ClassFile {
     u4 magic;
     u2 minor_version;
@@ -424,7 +426,11 @@ static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
     int ni = ai->attribute_name_index;
     struct cp_Utf8 *u = &ops->clazz->constant_pool[ni]->info.U;
     enum attribute_type at = attr_lookup((const char *)u->bytes, u->length);
-    return ops->verbose("unhandled attribute %d:%s", at, attr_wordlist[at]);
+    // "A Java Virtual Machine implementation is required to silently ignore
+    // any or all attributes in the attributes table of a ClassFile structure
+    // that it does not recognize." JVM Spec section 4.1
+    // Thus we emit this as debug information, not as normal verbose output
+    return ops->debug(1, "unhandled attribute %d:%s", at, attr_wordlist[at]);
 }
 
 static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
@@ -495,11 +501,24 @@ static int got_verbose(const char *fmt, ...)
     return 0;
 }
 
+static int got_debug(int level, const char *fmt, ...)
+{
+    if (level <= TENDRYL_DEBUG_LEVEL) {
+        va_list vl;
+        va_start(vl, fmt);
+        vprintf(fmt, vl);
+        fputs("\n", stdout);
+        va_end(vl);
+    }
+    return 0;
+}
+
 int tendryl_init_ops(tendryl_ops *ops)
 {
     ops->realloc = realloc;
     ops->error = got_error;
     ops->verbose = got_verbose;
+    ops->debug = got_debug;
 
     ops->version = check_version;
     ops->parse = (struct tendryl_parsers){
