@@ -413,8 +413,8 @@ static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
         ops->parse.attr[ATTRIBUTE_invalid](f, ops, ai);
     }
 
-    return ops->verbose("attribute_info with name index %d (%d:%s=%s) and length %d"
-                        , ni, at, u->bytes, attr_wordlist[at], al);
+    return ops->verbose("attribute_info with name index %d:%s=%d:%s and length %d"
+                        , ni, u->bytes, at, attr_wordlist[at], al);
 }
 
 static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
@@ -450,7 +450,8 @@ static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
     for (unsigned i = 0; i < ac->attributes_count; i++)
         ops->parse.attribute_info(f, ops, &ac->attributes[i]);
 
-    return ops->verbose("Code with length %d", ai->attribute_length);
+    return ops->verbose("Code with overall length %d, bytecode length %d"
+                        , ai->attribute_length, ac->code_length);
 }
 
 static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, void *_at)
