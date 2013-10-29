@@ -18,6 +18,8 @@ typedef uint8_t  u1;
 // void*), which is filled in with an allocation done by the tendryl_parser
 // using the realloc() style allocator specified in tendryl_ops
 typedef int tendryl_parser(FILE *f, tendryl_ops *ops, void *build);
+typedef struct attribute_info attribute_info;
+typedef int tendryl_attr_parser(FILE *f, tendryl_ops *ops, attribute_info *attr);
 
 enum constant_tag {
     CONSTANT_invalid             = 0,
@@ -85,7 +87,7 @@ struct tendryl_ops {
     struct tendryl_parsers {
         tendryl_parser *classfile, *cp_info, *pool[CONSTANT_max];
         tendryl_parser *field_info, *method_info, *attribute_info;
-        tendryl_parser *attr[ATTRIBUTE_max];
+        tendryl_attr_parser *attr[ATTRIBUTE_max];
     } parse;
 };
 

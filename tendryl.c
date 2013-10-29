@@ -418,9 +418,8 @@ static int parse_attribute_info(FILE *f, tendryl_ops *ops, void *_ai)
                          , ni, u->bytes, at, attr_wordlist[at], al);
 }
 
-static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
+static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, attribute_info *ai)
 {
-    attribute_info *ai = _at;
     fread(&ai->info, 1, ai->attribute_length, f);
     int ni = ai->attribute_name_index;
     struct cp_Utf8 *u = &ops->clazz->constant_pool[ni]->info.U;
@@ -432,9 +431,8 @@ static int parse_attribute_invalid(FILE *f, tendryl_ops *ops, void *_at)
     return ops->debug(2, "unhandled attribute %d:%s", at, attr_wordlist[at]);
 }
 
-static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
+static int parse_attribute_Code(FILE *f, tendryl_ops *ops, attribute_info *ai)
 {
-    attribute_info *ai = _at;
     struct attr_Code *ac = &ai->info.C;
     ac->max_stack = GET2(f);
     ac->max_locals = GET2(f);
@@ -459,17 +457,15 @@ static int parse_attribute_Code(FILE *f, tendryl_ops *ops, void *_at)
                          , ai->attribute_length, ac->code_length);
 }
 
-static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, void *_at)
+static int parse_attribute_ConstantValue(FILE *f, tendryl_ops *ops, attribute_info *ai)
 {
-    attribute_info *ai = _at;
     struct attr_ConstantValue *ac = &ai->info.CV;
     u2 ci = ac->constantvalue_index = GET2(f);
     return ops->debug(5, "ConstantValue with index %d", ci);
 }
 
-static int parse_attribute_Exceptions(FILE *f, tendryl_ops *ops, void *_at)
+static int parse_attribute_Exceptions(FILE *f, tendryl_ops *ops, attribute_info *ai)
 {
-    attribute_info *ai = _at;
     struct attr_Exceptions *e = &ai->info.E;
     u2 ne = e->number_of_exceptions = GET2(f);
     // e->exceptions is allocated by the original attribute_length alloc
