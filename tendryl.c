@@ -8,7 +8,6 @@
 #define REALLOC(X,N)    (ops->realloc((X), (N)))
 #define ALLOC(N)        REALLOC(NULL, N)
 #define FREE(X)         REALLOC(X, 0)
-#define CALLOC(X, N, M) ALLOC((N)*(M))
 
 #define ALLOC_UPTO_LEN(C,F,N)       ALLOC(offsetof(C##_info,info.F) + (N))
 
