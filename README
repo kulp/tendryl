@@ -1,0 +1,7 @@
+tendryl is a Java (6 ?) classfile parser in C99. It was written mostly
+as an autodidactic exercise. It is released under the MIT License.
+
+Darren Kulp
+darren@kulp.ch
+2014-12-28
+
