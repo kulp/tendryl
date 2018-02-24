@@ -19,7 +19,7 @@
 
 typedef struct cp_info cp_info;
 typedef struct field_info field_info;
-typedef struct method_info method_info;
+typedef struct field_info method_info;
 typedef struct attribute_info attribute_info;
 
 int TENDRYL_DEBUG_LEVEL = 0;
