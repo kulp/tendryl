@@ -159,6 +159,8 @@ static int parse_classfile(FILE *f, tendryl_ops *ops, void *_c)
 
     {
         c->constant_pool_count = GET2(f);
+        // "The value of the constant_pool_count item is equal to the number of
+        // entries in the constant_pool table plus one." - JVM Spec section 4.1
         c->constant_pool = ALLOC(c->constant_pool_count * sizeof *c->constant_pool);
         int inc = -1;
         for (unsigned i = 1; i < c->constant_pool_count; i += inc) { // notice 1-indexing
