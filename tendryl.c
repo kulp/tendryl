@@ -438,7 +438,7 @@ static int parse_attribute_Code(FILE *f, tendryl_ops *ops, attribute_info *ai)
     ac->max_locals = GET2(f);
     ac->code_length = GET4(f);
     ac->code = ALLOC(ac->code_length * sizeof *ac->code);
-    fread(&ac->code, 1, ac->code_length, f);
+    fread(ac->code, 1, ac->code_length, f);
     ac->exception_table_length = GET2(f);
     ac->exception_table = ALLOC(ac->exception_table_length * sizeof *ac->exception_table);
     for (unsigned i = 0; i < ac->exception_table_length; i++) {
